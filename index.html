@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Ivitna — Ad Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --surface: #ffffff;
+    --surface2: #f0f0f2;
+    --border: #e2e2e6;
+    --text: #111113;
+    --text-muted: #6b6b7b;
+    --violet: #7c3aed;
+    --violet-label: #6d28d9;
+    --violet-dim: #7c3aed18;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --warning: #d97706;
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'DM Sans', sans-serif;
+    --sidebar-w: 220px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a;
+      --surface: #1a1a1a;
+      --surface2: #222226;
+      --border: #2a2a2e;
+      --text: #f0f0f2;
+      --text-muted: #88889a;
+      --violet: #7c3aed;
+      --violet-label: #a78bfa;
+      --violet-dim: #3b1f6e22;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; min-height: 100vh; display: flex; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w); min-height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 200; transition: transform 0.25s ease;
+  }
+  .sidebar-logo { padding: 20px 18px 16px; border-bottom: 1px solid var(--border); }
+  .logo-wordmark { display: flex; align-items: flex-end; gap: 0; }
+  .logo-wordmark svg { overflow: visible; }
+  .logo-sub { font-size: 10px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.4px; }
+  .nav { flex: 1; padding: 10px 0; overflow-y: auto; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+    cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted);
+    transition: all 0.15s; border-left: 3px solid transparent; user-select: none;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--violet); border-left-color: var(--violet); background: var(--violet-dim); }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sidebar-footer { padding: 12px 18px; border-top: 1px solid var(--border); }
+  .sidebar-footer p { font-size: 11px; color: var(--text-muted); }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: #00000055; z-index: 190; }
+  .sidebar-overlay.open { display: block; }
+  .hamburger { display: none; background: none; border: none; cursor: pointer; color: var(--text); padding: 4px; }
+  .hamburger svg { width: 22px; height: 22px; }
+
+  /* MAIN */
+  .main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar {
+    padding: 13px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); position: sticky; top: 0; z-index: 50;
+    gap: 12px; box-shadow: var(--shadow);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-title { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .content { padding: 20px 24px; flex: 1; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+    border-radius: 6px; font-family: var(--font-body); font-size: 13px;
+    font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn svg { width: 14px; height: 14px; }
+  .btn-primary { background: var(--violet); color: #fff; }
+  .btn-primary:hover { background: #6d28d9; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--violet); color: var(--violet); }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: none; padding: 6px 10px; }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid #ef444433; }
+  .btn-danger:hover { background: #ef444411; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; box-shadow: var(--shadow); }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 22px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; box-shadow: var(--shadow); }
+  .stat-card.violet-accent { border-left: 3px solid var(--violet); }
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* TABLES */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; min-width: 480px; }
+  th { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-paid { background: #16a34a18; color: var(--success); }
+  .badge-unpaid { background: #d9770618; color: var(--warning); }
+  .badge-overdue { background: #dc262618; color: var(--danger); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: #000000aa;
+    z-index: 999; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px); padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; width: 520px; max-width: 100%;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .modal-title { font-family: var(--font-display); font-size: 17px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 22px; line-height: 1; padding: 2px 6px; }
+  .modal-close:hover { color: var(--text); }
+
+  /* FORMS */
+  .form-group { margin-bottom: 13px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 9px 11px; color: var(--text);
+    font-family: var(--font-body); font-size: 13px; outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--violet); }
+  input.error { border-color: var(--danger) !important; }
+  .field-error { font-size: 11px; color: var(--danger); margin-top: 4px; }
+  textarea { resize: vertical; min-height: 70px; }
+  select option { background: var(--surface); }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+  .section-divider { font-size: 11px; font-weight: 600; color: var(--violet-label); text-transform: uppercase; letter-spacing: 0.8px; margin: 6px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+  /* CALENDAR */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .cal-nav-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+  .cal-day-label { text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); padding: 5px 0; text-transform: uppercase; }
+  .cal-day { min-height: 66px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 5px; cursor: pointer; transition: border-color 0.15s; }
+  .cal-day:hover { border-color: var(--violet); }
+  .cal-day.today { border-color: var(--violet); background: var(--violet-dim); }
+  .cal-day.other-month { opacity: 0.3; }
+  .cal-day-num { font-size: 11px; font-weight: 500; margin-bottom: 3px; }
+  .cal-day.today .cal-day-num { color: var(--violet); font-weight: 700; }
+  .cal-event { font-size: 9px; background: var(--violet-dim); color: var(--violet-label); border-left: 2px solid var(--violet); padding: 2px 3px; border-radius: 2px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* CLIENTS */
+  .client-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 9px; cursor: pointer; transition: border-color 0.15s; box-shadow: var(--shadow); }
+  .client-card:hover { border-color: var(--violet); }
+  .client-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--violet-dim); border: 1.5px solid var(--violet); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 14px; color: var(--violet-label); flex-shrink: 0; }
+  .client-info { flex: 1; min-width: 0; }
+  .client-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .client-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .client-tags { margin-top: 5px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .client-tag { font-size: 11px; color: var(--text-muted); }
+  .client-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* PAYMENTS */
+  .payment-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 18px; }
+
+  /* BACKUP */
+  .backup-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  .backup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; transition: border-color 0.15s; cursor: pointer; box-shadow: var(--shadow); }
+  .backup-card:hover { border-color: var(--violet); }
+  .backup-icon { font-size: 28px; margin-bottom: 10px; }
+  .backup-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .backup-card p { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 36px 20px; color: var(--text-muted); }
+  .empty svg { width: 34px; height: 34px; margin-bottom: 8px; opacity: 0.25; }
+  .empty p { font-size: 13px; }
+
+  /* DETAIL */
+  .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .detail-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--violet-dim); border: 2px solid var(--violet); display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 18px; color: var(--violet-label); flex-shrink: 0; }
+  .detail-name { font-family: var(--font-display); font-size: 20px; }
+  .detail-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+  .tab { padding: 9px 16px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.15s; margin-bottom: -1px; white-space: nowrap; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--violet); border-bottom-color: var(--violet); }
+
+  /* INSTAGRAM LINK */
+  .ig-link { display: inline-flex; align-items: center; gap: 4px; color: var(--violet-label); font-size: 12px; font-weight: 600; text-decoration: none; }
+  .ig-link:hover { text-decoration: underline; }
+  .ig-link svg { width: 13px; height: 13px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--violet); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 18px; right: 18px; z-index: 9999; background: var(--surface); border: 1px solid var(--violet); border-radius: 8px; padding: 10px 15px; font-size: 13px; color: var(--text); box-shadow: 0 4px 16px rgba(124,58,237,0.18); transform: translateY(70px); opacity: 0; transition: all 0.3s; pointer-events: none; max-width: 280px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-220px); width: 220px; }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .hamburger { display: block; }
+    .content { padding: 14px; }
+    .topbar { padding: 12px 14px; }
+    .stats-grid { grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 14px; }
+    .dash-grid { grid-template-columns: 1fr; }
+    .payment-summary { grid-template-columns: 1fr; gap: 10px; }
+    .backup-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .cal-day { min-height: 40px; padding: 3px; }
+    .cal-day-num { font-size: 10px; }
+    .cal-event { display: none; }
+    .client-actions { flex-direction: column; }
+  }
+  @media (max-width: 480px) {
+    .stat-value { font-size: 20px; }
+    .modal { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1 style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);letter-spacing:1px;">Ivitna</h1>
+    <div class="logo-sub">Ad Management Platform</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="navigate('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendar
+    </div>
+    <div class="nav-item" onclick="navigate('clients')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Clients
+    </div>
+    <div class="nav-item" onclick="navigate('payments')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Payments
+    </div>
+    <div class="nav-item" onclick="navigate('backup')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+      Backup & Restore
+    </div>
+  </nav>
+  <div class="sidebar-footer"><p>© 2026 Ivitna</p></div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="hamburger" onclick="toggleSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+    </div>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+  <div class="content" id="content"></div>
+</main>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DB = {
+  get clients(){return JSON.parse(localStorage.getItem('ivitna_clients')||'[]');},
+  set clients(v){localStorage.setItem('ivitna_clients',JSON.stringify(v));},
+  get appointments(){return JSON.parse(localStorage.getItem('ivitna_appointments')||'[]');},
+  set appointments(v){localStorage.setItem('ivitna_appointments',JSON.stringify(v));},
+  get payments(){return JSON.parse(localStorage.getItem('ivitna_payments')||'[]');},
+  set payments(v){localStorage.setItem('ivitna_payments',JSON.stringify(v));},
+};
+
+let currentPage='dashboard', calMonth=new Date().getMonth(), calYear=new Date().getFullYear(), clientDetail=null, clientDetailTab='info';
+
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('open');}
+function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+
+function navigate(page){
+  currentPage=page;clientDetail=null;closeSidebar();
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  [{dashboard:0,calendar:1,clients:2,payments:3,backup:4}][0][page] !== undefined &&
+    document.querySelectorAll('.nav-item')[{dashboard:0,calendar:1,clients:2,payments:3,backup:4}[page]]?.classList.add('active');
+  document.getElementById('page-title').textContent={dashboard:'Dashboard',calendar:'Calendar',clients:'Clients',payments:'Payments',backup:'Backup & Restore'}[page];
+  render();
+}
+function render(){({dashboard:renderDashboard,calendar:renderCalendar,clients:renderClients,payments:renderPayments,backup:renderBackup})[currentPage]?.();}
+
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
+function openModal(title,body){document.getElementById('modal-title').textContent=title;document.getElementById('modal-body').innerHTML=body;document.getElementById('modal-overlay').classList.add('open');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function fmt(d){return d?new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';}
+function fmtTime(d){return d?new Date(d).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';}
+function initial(name){return name?name.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2):'?';}
+function currency(n){return '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function statusBadge(s){return`<span class="badge ${{Paid:'badge-paid',Unpaid:'badge-unpaid',Overdue:'badge-overdue'}[s]||'badge-unpaid'}">${s}</span>`;}
+function getClient(id){return DB.clients.find(c=>c.id===id);}
+
+// VALIDATION
+function validatePhone(p){if(!p)return true;return/^[6-9]\d{9}$/.test(p.replace(/[\s\-]/g,''));}
+function validateEmail(e){if(!e)return true;return/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+function showFieldError(id,msg){const el=document.getElementById(id);if(!el)return;el.classList.add('error');let err=el.parentNode.querySelector('.field-error');if(!err){err=document.createElement('div');err.className='field-error';el.parentNode.appendChild(err);}err.textContent=msg;}
+function clearFieldErrors(){document.querySelectorAll('.error').forEach(el=>el.classList.remove('error'));document.querySelectorAll('.field-error').forEach(el=>el.remove());}
+
+// DASHBOARD
+function renderDashboard(){
+  const clients=DB.clients,appts=DB.appointments,payments=DB.payments;
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayA=appts.filter(a=>{const d=new Date(a.date);d.setHours(0,0,0,0);return d.getTime()===today.getTime();});
+  const upcoming=appts.filter(a=>new Date(a.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
+  const totalRev=payments.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const outstanding=payments.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const recentPay=[...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  document.getElementById('topbar-actions').innerHTML='';
+  document.getElementById('content').innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card violet-accent"><div class="stat-label">Total Clients</div><div class="stat-value">${clients.length}</div><div class="stat-sub">Active accounts</div></div>
+      <div class="stat-card violet-accent"><div class="stat-label">Today's Appointments</div><div class="stat-value">${todayA.length}</div><div class="stat-sub">${fmt(new Date())}</div></div>
+      <div class="stat-card violet-accent"><div class="stat-label">Total Revenue</div><div class="stat-value" style="font-size:18px;">${currency(totalRev)}</div><div class="stat-sub">Paid payments</div></div>
+      <div class="stat-card violet-accent"><div class="stat-label">Outstanding</div><div class="stat-value" style="font-size:18px;">${currency(outstanding)}</div><div class="stat-sub">Unpaid / Overdue</div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="card"><div class="card-title">Upcoming Appointments</div>
+        ${upcoming.length===0?`<div class="empty"><p>No upcoming appointments</p></div>`:
+          upcoming.map(a=>{const c=getClient(a.clientId);return`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--violet-dim);border:1px solid var(--violet);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--violet-label);flex-shrink:0;">${c?initial(c.name):'?'}</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.title}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${c?c.name:'Unknown'} · ${fmt(a.date)} ${fmtTime(a.date)}</div></div>
+          </div>`;}).join('')}
+      </div>
+      <div class="card"><div class="card-title">Recent Payments</div>
+        ${recentPay.length===0?`<div class="empty"><p>No payments recorded</p></div>`:
+          recentPay.map(p=>{const c=getClient(p.clientId);return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px;">
+            <div style="min-width:0;"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c?c.name:'Unknown'}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${fmt(p.date)} · ${p.method||'—'}</div></div>
+            <div style="text-align:right;flex-shrink:0;"><div style="font-size:13px;font-weight:600;">${currency(p.amount)}</div><div style="margin-top:2px;">${p.type||'Payment'}</div></div>
+          </div>`;}).join('')}
+      </div>
+    </div>`;
+}
+
+// CALENDAR
+function renderCalendar(){
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openAddAppointment()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>New Appointment</span></button>`;
+  const appts=DB.appointments;
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const today=new Date();today.setHours(0,0,0,0);
+  const dayLabels=['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  let cells='';
+  for(let i=firstDay-1;i>=0;i--)cells+=`<div class="cal-day other-month"><div class="cal-day-num">${daysInPrev-i}</div></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const da=appts.filter(a=>a.date&&a.date.startsWith(ds));
+    const isT=new Date(calYear,calMonth,d).getTime()===today.getTime();
+    cells+=`<div class="cal-day${isT?' today':''}" onclick="openDayDetail('${ds}')">
+      <div class="cal-day-num">${d}</div>
+      ${da.slice(0,2).map(a=>`<div class="cal-event">${a.title}</div>`).join('')}
+      ${da.length>2?`<div style="font-size:9px;color:var(--text-muted);">+${da.length-2}</div>`:''}
+    </div>`;
+  }
+  const rem=(7-((firstDay+daysInMonth)%7))%7;
+  for(let i=1;i<=rem;i++)cells+=`<div class="cal-day other-month"><div class="cal-day-num">${i}</div></div>`;
+  document.getElementById('content').innerHTML=`<div class="card">
+    <div class="cal-nav">
+      <button class="btn btn-outline btn-sm" onclick="calNav(-1)">← Prev</button>
+      <div class="cal-nav-title">${monthNames[calMonth]} ${calYear}</div>
+      <button class="btn btn-outline btn-sm" onclick="calNav(1)">Next →</button>
+    </div>
+    <div class="cal-grid">${dayLabels}${cells}</div>
+  </div>`;
+}
+function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+
+function openDayDetail(ds){
+  const appts=DB.appointments.filter(a=>a.date&&a.date.startsWith(ds));
+  const label=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  openModal(label,`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button class="btn btn-primary btn-sm" onclick="closeModal();openAddAppointment('${ds}')">+ Add Appointment</button>
+    </div>
+    ${appts.length===0?`<div class="empty"><p>No appointments this day</p></div>`:
+      appts.map(a=>{const c=getClient(a.clientId);return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
+          <div style="min-width:0;"><div style="font-weight:600;">${a.title}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${c?c.name:'No client'} · ${a.date?fmtTime(a.date):''}</div>
+          ${a.notes?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${a.notes}</div>`:''}</div>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            <button class="btn btn-ghost btn-sm" onclick="closeModal();editAppointment('${a.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAppointment('${a.id}')">Delete</button>
+          </div>
+        </div>
+      </div>`;}).join('')}`);
+}
+
+function openAddAppointment(prefillDate){
+  openModal('New Appointment',`
+    <div class="form-group"><label>Title</label><input id="a-title" placeholder="Campaign Review"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Date & Time</label><input id="a-date" type="datetime-local" value="${prefillDate?prefillDate+'T09:00':''}"/></div>
+      <div class="form-group"><label>Client</label><select id="a-client"><option value="">— No client —</option>${DB.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="a-notes" placeholder="Optional notes..."></textarea></div>
+    <div class="form-actions"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveAppointment()">Save</button></div>`);
+}
+
+function saveAppointment(id){
+  const title=document.getElementById('a-title')?.value.trim();
+  if(!title){alert('Please enter a title');return;}
+  const appts=DB.appointments;
+  const obj={title,date:document.getElementById('a-date')?.value,clientId:document.getElementById('a-client')?.value,notes:document.getElementById('a-notes')?.value.trim()};
+  if(id){const i=appts.findIndex(a=>a.id===id);if(i>=0)appts[i]={...appts[i],...obj};}
+  else appts.push({id:uid(),...obj,createdAt:new Date().toISOString()});
+  DB.appointments=appts;closeModal();toast('Appointment saved!');render();
+}
+
+function editAppointment(id){
+  const a=DB.appointments.find(x=>x.id===id);if(!a)return;
+  openModal('Edit Appointment',`
+    <div class="form-group"><label>Title</label><input id="a-title" value="${a.title||''}"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Date & Time</label><input id="a-date" type="datetime-local" value="${a.date?a.date.slice(0,16):''}"/></div>
+      <div class="form-group"><label>Client</label><select id="a-client"><option value="">— No client —</option>${DB.clients.map(c=>`<option value="${c.id}" ${c.id===a.clientId?'selected':''}>${c.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="a-notes">${a.notes||''}</textarea></div>
+    <div class="form-actions"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveAppointment('${id}')">Update</button></div>`);
+}
+
+function deleteAppointment(id){if(!confirm('Delete this appointment?'))return;DB.appointments=DB.appointments.filter(a=>a.id!==id);toast('Deleted');closeModal();render();}
+
+// CLIENTS
+function renderClients(){
+  if(clientDetail){renderClientDetail();return;}
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openAddClient()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>New Client</span></button>`;
+  document.getElementById('content').innerHTML=`
+    <div style="margin-bottom:14px;"><input id="client-search-input" placeholder="Search clients..." oninput="filterClients()" style="max-width:320px;"/></div>
+    <div id="client-list">${renderClientList(DB.clients)}</div>`;
+}
+
+function renderClientList(clients){
+  if(clients.length===0)return`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>No clients yet. Add your first client!</p></div>`;
+  return clients.map(c=>{
+    const pays=DB.payments.filter(p=>p.clientId===c.id);
+    const outstanding=pays.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+    const appts=DB.appointments.filter(a=>a.clientId===c.id).length;
+    const pending=Math.max(0,(c.vidRequired||0)-(c.vidCompleted||0));
+    return`<div class="client-card" onclick="openClientDetail('${c.id}')">
+      <div class="client-avatar">${initial(c.name)}</div>
+      <div class="client-info">
+        <div class="client-name">${c.name}</div>
+        <div class="client-meta">${c.company||'—'} · ${c.email||'—'}</div>
+        <div class="client-tags">
+          <span class="client-tag">${appts} appt${appts!==1?'s':''}</span>
+          ${outstanding>0?`<span class="client-tag" style="color:var(--warning);">Due: ${currency(outstanding)}</span>`:`<span class="client-tag" style="color:var(--success);">All paid</span>`}
+          <span class="client-tag">Videos: <b>${c.vidRequired||0}</b> req / <b style="color:var(--success)">${c.vidCompleted||0}</b> done / <b style="color:${pending>0?'var(--warning)':'var(--success)'}">${pending}</b> pending</span>
+        </div>
+      </div>
+      <div class="client-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-outline btn-sm" onclick="openEditClient('${c.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteClient('${c.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterClients(){
+  const q=(document.getElementById('client-search-input')?.value||'').toLowerCase();
+  document.getElementById('client-list').innerHTML=renderClientList(DB.clients.filter(c=>(c.name+c.company+c.email).toLowerCase().includes(q)));
+}
+
+function clientForm(c){
+  return`
+    <div class="form-row">
+      <div class="form-group"><label>Full Name *</label><input id="c-name" value="${c?.name||''}" placeholder="Priya Sharma"/></div>
+      <div class="form-group"><label>Company</label><input id="c-company" value="${c?.company||''}" placeholder="Brand Co."/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input id="c-email" value="${c?.email||''}" placeholder="priya@brand.com"/></div>
+      <div class="form-group"><label>Phone (India)</label><input id="c-phone" value="${c?.phone||''}" placeholder="9876543210" maxlength="10"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Campaign Type</label>
+        <select id="c-campaign">${['','Social Media','Google Ads','Billboard','TV','Radio','Print','Digital Display','Email','Other'].map(v=>`<option value="${v}" ${v===(c?.campaign||'')?'selected':''}>${v||'— Select —'}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Budget (₹)</label><input id="c-budget" type="number" value="${c?.budget||''}" placeholder="0"/></div>
+    </div>
+    <div class="section-divider">Instagram</div>
+    <div class="form-row">
+      <div class="form-group"><label>Instagram Username</label><input id="c-ig-user" value="${c?.igUser||''}" placeholder="@brandname"/></div>
+      <div class="form-group"><label>Instagram Page URL</label><input id="c-ig-url" value="${c?.igUrl||''}" placeholder="https://instagram.com/brandname"/></div>
+    </div>
+    <div class="section-divider">Video Tracking</div>
+    <div class="form-row">
+      <div class="form-group"><label>Videos Required</label><input id="c-vid-required" type="number" min="0" value="${c?.vidRequired||''}" placeholder="0"/></div>
+      <div class="form-group"><label>Videos Completed</label><input id="c-vid-completed" type="number" min="0" value="${c?.vidCompleted||''}" placeholder="0"/></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="c-notes">${c?.notes||''}</textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient('${c?.id||''}')">Save Client</button>
+    </div>`;
+}
+
+function openAddClient(){openModal('New Client',clientForm());}
+function openEditClient(id){const c=DB.clients.find(x=>x.id===id);if(!c)return;openModal('Edit Client',clientForm(c));}
+
+function saveClient(id){
+  clearFieldErrors();
+  const name=document.getElementById('c-name')?.value.trim();
+  const email=document.getElementById('c-email')?.value.trim();
+  const phone=document.getElementById('c-phone')?.value.trim();
+  let valid=true;
+  if(!name){showFieldError('c-name','Name is required');valid=false;}
+  if(email&&!validateEmail(email)){showFieldError('c-email','Enter a valid email address');valid=false;}
+  if(phone&&!validatePhone(phone)){showFieldError('c-phone','Must be a 10-digit Indian number starting with 6-9');valid=false;}
+  if(!valid)return;
+  const data={name,company:document.getElementById('c-company')?.value.trim(),email,phone,
+    campaign:document.getElementById('c-campaign')?.value,budget:document.getElementById('c-budget')?.value,
+    igUser:document.getElementById('c-ig-user')?.value.trim(),igUrl:document.getElementById('c-ig-url')?.value.trim(),
+    vidRequired:parseInt(document.getElementById('c-vid-required')?.value)||0,
+    vidCompleted:parseInt(document.getElementById('c-vid-completed')?.value)||0,
+    notes:document.getElementById('c-notes')?.value.trim()};
+  const clients=DB.clients;
+  if(id){const i=clients.findIndex(c=>c.id===id);if(i>=0)clients[i]={...clients[i],...data};}
+  else clients.push({id:uid(),...data,createdAt:new Date().toISOString()});
+  DB.clients=clients;closeModal();toast('Client saved!');render();
+}
+
+function deleteClient(id){
+  if(!confirm('Delete this client and all their data?'))return;
+  DB.clients=DB.clients.filter(c=>c.id!==id);
+  DB.appointments=DB.appointments.filter(a=>a.clientId!==id);
+  DB.payments=DB.payments.filter(p=>p.clientId!==id);
+  toast('Client deleted');render();
+}
+
+// CLIENT DETAIL
+function openClientDetail(id){clientDetail=id;clientDetailTab='info';renderClientDetail();}
+
+function renderClientDetail(){
+  const c=DB.clients.find(x=>x.id===clientDetail);if(!c){navigate('clients');return;}
+  const appts=DB.appointments.filter(a=>a.clientId===clientDetail).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  const pays=DB.payments.filter(p=>p.clientId===clientDetail).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const totalPaid=pays.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const outstanding=pays.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-outline btn-sm" onclick="navigate('clients')">← Back</button>`;
+  const igUrl=c.igUrl||(c.igUser?'https://instagram.com/'+c.igUser.replace('@',''):'');
+  const igHtml=c.igUser?`<a class="ig-link" href="${igUrl}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>${c.igUser}</a>`:'';
+  document.getElementById('content').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-avatar">${initial(c.name)}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="detail-name">${c.name}</div>
+        <div class="detail-sub">${c.company||'—'} · ${c.campaign||'—'}</div>
+        <div style="margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          ${c.email?`<span style="font-size:12px;color:var(--text-muted);">${c.email}</span>`:''}
+          ${c.phone?`<span style="font-size:12px;color:var(--text-muted);">${c.phone}</span>`:''}
+          ${igHtml}
+          ${c.budget?`<span style="font-size:12px;color:var(--text-muted);">Budget: ${currency(c.budget)}</span>`:''}
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="openEditClient('${c.id}')">Edit</button>
+    </div>
+    <div class="tabs">
+      <div class="tab ${clientDetailTab==='info'?'active':''}" onclick="setClientTab('info')">Overview</div>
+      <div class="tab ${clientDetailTab==='appts'?'active':''}" onclick="setClientTab('appts')">Appointments (${appts.length})</div>
+      <div class="tab ${clientDetailTab==='pays'?'active':''}" onclick="setClientTab('pays')">Payments (${pays.length})</div>
+    </div>
+    <div id="client-tab-content">
+      ${clientDetailTab==='info'?renderClientInfo(c,appts,pays,totalPaid,outstanding):''}
+      ${clientDetailTab==='appts'?renderClientAppts(appts):''}
+      ${clientDetailTab==='pays'?renderClientPays(pays,totalPaid,outstanding):''}
+    </div>`;
+}
+function setClientTab(tab){clientDetailTab=tab;renderClientDetail();}
+
+function renderClientInfo(c,appts,pays,totalPaid,outstanding){
+  const next=appts.filter(a=>new Date(a.date)>new Date())[0];
+  const vp=Math.max(0,(c.vidRequired||0)-(c.vidCompleted||0));
+  return`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+      <div class="stat-card violet-accent"><div class="stat-label">Total Paid</div><div class="stat-value" style="font-size:17px;">${currency(totalPaid)}</div></div>
+      <div class="stat-card violet-accent"><div class="stat-label">Outstanding</div><div class="stat-value" style="font-size:17px;${outstanding>0?'color:var(--warning)':''}">${currency(outstanding)}</div></div>
+      <div class="stat-card violet-accent"><div class="stat-label">Next Appointment</div><div style="font-size:12px;font-weight:600;margin-top:5px;">${next?fmt(next.date)+' '+fmtTime(next.date):'None scheduled'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;">
+      <div class="stat-card" style="border-left:3px solid var(--border);"><div class="stat-label">Videos Required</div><div class="stat-value" style="font-size:22px;">${c.vidRequired||0}</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--success);"><div class="stat-label">Videos Completed</div><div class="stat-value" style="font-size:22px;color:var(--success);">${c.vidCompleted||0}</div></div>
+      <div class="stat-card" style="border-left:3px solid ${vp>0?'var(--warning)':'var(--success)'};"><div class="stat-label">Videos Pending</div><div class="stat-value" style="font-size:22px;color:${vp>0?'var(--warning)':'var(--success)'};">${vp}</div><div class="stat-sub">Auto-calculated</div></div>
+    </div>
+    ${c.notes?`<div class="card"><div class="card-title">Notes</div><p style="font-size:13px;color:var(--text-muted);margin-top:4px;">${c.notes}</p></div>`:''}`;
+}
+
+function renderClientAppts(appts){
+  return`<div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+    <button class="btn btn-primary btn-sm" onclick="openAddApptForClient()">+ Add Appointment</button>
+  </div>
+  ${appts.length===0?`<div class="empty"><p>No appointments yet</p></div>`:
+    `<div class="card"><div class="table-wrap"><table>
+      <thead><tr><th>Title</th><th>Date & Time</th><th>Notes</th><th>Actions</th></tr></thead>
+      <tbody>${appts.map(a=>`<tr>
+        <td>${a.title}</td><td>${fmt(a.date)} ${fmtTime(a.date)}</td>
+        <td style="color:var(--text-muted)">${a.notes||'—'}</td>
+        <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="editAppointment('${a.id}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteAppointment('${a.id}')">Delete</button></td>
+      </tr>`).join('')}</tbody>
+    </table></div></div>`}`;
+}
+
+function openAddApptForClient(){
+  openModal('New Appointment',`
+    <div class="form-group"><label>Title</label><input id="a-title" placeholder="Campaign Review"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Date & Time</label><input id="a-date" type="datetime-local"/></div>
+      <div class="form-group"><label>Client</label><select id="a-client">${DB.clients.map(c=>`<option value="${c.id}" ${c.id===clientDetail?'selected':''}>${c.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="a-notes"></textarea></div>
+    <div class="form-actions"><button class="btn btn-outline" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveApptReturn()">Save</button></div>`);
+}
+function saveApptReturn(){
+  const title=document.getElementById('a-title')?.value.trim();if(!title){alert('Enter a title');return;}
+  const appts=DB.appointments;
+  appts.push({id:uid(),title,date:document.getElementById('a-date')?.value,clientId:document.getElementById('a-client')?.value,notes:document.getElementById('a-notes')?.value.trim(),createdAt:new Date().toISOString()});
+  DB.appointments=appts;closeModal();toast('Appointment saved!');renderClientDetail();
+}
+
+function renderClientPays(pays, totalPaid, outstanding) {
+  const advance = pays.filter(p=>p.type==='Advance').reduce((s,p)=>s+Number(p.amount),0);
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button class="btn btn-primary btn-sm" onclick="openModal('Add Payment',paymentForm(null,'${clientDetail}'))">+ Add Payment</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px;">
+      <div class="stat-card violet-accent"><div class="stat-label">Total Paid</div><div class="stat-value" style="font-size:17px;color:var(--success);">${currency(totalPaid)}</div></div>
+      <div class="stat-card violet-accent"><div class="stat-label">Pending</div><div class="stat-value" style="font-size:17px;color:${outstanding>0?'var(--warning)':'var(--success)'}">${currency(outstanding)}</div></div>
+    </div>
+    ${pays.length===0?`<div class="empty"><p>No payments recorded</p></div>`:
+      `<div class="card"><div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Amount</th><th>Type</th><th>Method</th><th>Status</th><th>Notes</th><th>Actions</th></tr></thead>
+        <tbody>${pays.map(p=>`<tr>
+          <td>${fmt(p.date)}</td>
+          <td style="font-weight:600;">${currency(p.amount)}</td>
+          <td><span style="font-size:11px;background:var(--violet-dim);color:var(--violet-label);padding:2px 7px;border-radius:10px;">${p.type||'Payment'}</span></td>
+          <td>${p.method||'—'}</td>
+          <td>${p.type||'Payment'}</td>
+          <td style="color:var(--text-muted);font-size:12px;">${p.notes||'—'}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-ghost btn-sm" onclick="editPayment('${p.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="delPayReturn('${p.id}')">Del</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table></div></div>`}`;
+}
+
+// PAYMENTS
+function renderPayments() {
+  document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openAddPayment()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>New Payment</span></button>`;
+
+  const clients = DB.clients;
+  const payments = DB.payments;
+
+  // Top summary
+  const totalRevenue = payments.reduce((s,p)=>s+Number(p.amount),0);
+  // Total pending = sum of (totalAmount - paid) per client where totalAmount is set
+  const totalPending = clients.reduce((sum, c) => {
+    const clientPaid = payments.filter(p=>p.clientId===c.id).reduce((s,p)=>s+Number(p.amount),0);
+    const contractVal = Number(c.contractAmount||0);
+    return sum + Math.max(0, contractVal - clientPaid);
+  }, 0);
+
+  // Per client data
+  const clientRows = clients.map(c => {
+    const cpays = payments.filter(p=>p.clientId===c.id);
+    const contractAmount = Number(c.contractAmount||0);
+    const advance = cpays.filter(p=>p.type==='Advance').reduce((s,p)=>s+Number(p.amount),0);
+    const totalPaid = cpays.reduce((s,p)=>s+Number(p.amount),0);
+    const pending = Math.max(0, contractAmount - totalPaid);
+    return { c, contractAmount, advance, totalPaid, pending };
+  });
+
+  document.getElementById('content').innerHTML = `
+    <!-- TOP SUMMARY -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div class="stat-card" style="border-left:3px solid var(--success);padding:22px;">
+        <div class="stat-label">Total Revenue So Far</div>
+        <div class="stat-value" style="font-size:26px;color:var(--success);margin-top:4px;">${currency(totalRevenue)}</div>
+        <div class="stat-sub">All payments received</div>
+      </div>
+      <div class="stat-card" style="border-left:3px solid var(--warning);padding:22px;">
+        <div class="stat-label">Total Pending to Receive</div>
+        <div class="stat-value" style="font-size:26px;color:var(--warning);margin-top:4px;">${currency(totalPending)}</div>
+        <div class="stat-sub">If all deals are completed</div>
+      </div>
+    </div>
+
+    <!-- CLIENT PAYMENT CARDS -->
+    <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:700;">Client Breakdown</div>
+      <input id="pay-search" placeholder="Search clients..." oninput="filterPaymentClients()" style="max-width:220px;"/>
+    </div>
+    <div id="pay-client-list">
+      ${renderPayClientCards(clientRows)}
+    </div>`;
+}
+
+function renderPayClientCards(rows) {
+  if (rows.length === 0) return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>No clients yet.</p></div>`;
+  return rows.map(({c, contractAmount, advance, totalPaid, pending}) => `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--violet-dim);border:1.5px solid var(--violet);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;color:var(--violet-label);flex-shrink:0;">${initial(c.name)}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;">${c.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${c.company||'—'} · ${c.campaign||'—'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="openEditClientContract('${c.id}')">Set Contract Amount</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('Add Payment',paymentForm(null,'${c.id}'))">+ Payment</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">Contract Value</div>
+          <div style="font-size:16px;font-weight:700;font-family:var(--font-display);">${contractAmount>0?currency(contractAmount):'Not set'}</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">Advance Paid</div>
+          <div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--violet-label);">${currency(advance)}</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">Total Paid</div>
+          <div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--success);">${currency(totalPaid)}</div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;border-left:3px solid ${pending>0?'var(--warning)':'var(--success)'};">
+          <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">Pending</div>
+          <div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:${pending>0?'var(--warning)':'var(--success)'};">${contractAmount>0?currency(pending):'—'}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterPaymentClients() {
+  const q = (document.getElementById('pay-search')?.value||'').toLowerCase();
+  const payments = DB.payments;
+  const rows = DB.clients.filter(c=>(c.name+c.company).toLowerCase().includes(q)).map(c=>{
+    const cpays = payments.filter(p=>p.clientId===c.id);
+    const contractAmount = Number(c.contractAmount||0);
+    const advance = cpays.filter(p=>p.type==='Advance').reduce((s,p)=>s+Number(p.amount),0);
+    const totalPaid = cpays.reduce((s,p)=>s+Number(p.amount),0);
+    const pending = Math.max(0, contractAmount - totalPaid);
+    return { c, contractAmount, advance, totalPaid, pending };
+  });
+  document.getElementById('pay-client-list').innerHTML = renderPayClientCards(rows);
+}
+
+function openEditClientContract(id) {
+  const c = DB.clients.find(x=>x.id===id); if(!c) return;
+  openModal('Set Contract Amount', `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Set the total contract value for <strong>${c.name}</strong>. This is used to calculate pending amounts.</p>
+    <div class="form-group"><label>Contract Amount (₹)</label><input id="contract-amount" type="number" value="${c.contractAmount||''}" placeholder="0.00"/></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContractAmount('${id}')">Save</button>
+    </div>`);
+}
+
+function saveContractAmount(id) {
+  const val = parseFloat(document.getElementById('contract-amount')?.value)||0;
+  const clients = DB.clients;
+  const i = clients.findIndex(c=>c.id===id);
+  if(i>=0) clients[i].contractAmount = val;
+  DB.clients = clients; closeModal(); toast('Contract amount saved!'); render();
+}
+
+function openAddPayment(){openModal('New Payment',paymentForm());}
+
+function paymentForm(p, preClientId) {
+  return `
+    <div class="form-row">
+      <div class="form-group"><label>Client *</label>
+        <select id="p-client"><option value="">— Select client —</option>${DB.clients.map(c=>`<option value="${c.id}" ${c.id===(p?.clientId||preClientId)?'selected':''}>${c.name}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Amount (₹) *</label><input id="p-amount" type="number" step="0.01" value="${p?.amount||''}" placeholder="0.00"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Type</label>
+        <select id="p-type">${['Payment','Advance','Installment','Final Payment'].map(v=>`<option value="${v}" ${v===(p?.type||'Payment')?'selected':''}>${v}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Date</label><input id="p-date" type="date" value="${p?.date?.slice(0,10)||new Date().toISOString().slice(0,10)}"/></div>
+    </div>
+    <div class="form-group"><label>Method</label>
+      <select id="p-method">${['','Bank Transfer','Cash','Credit Card','Cheque','UPI','Other'].map(v=>`<option value="${v}" ${v===(p?.method||'')?'selected':''}>${v||'— Select —'}</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="p-notes">${p?.notes||''}</textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePayment('${p?.id||''}')">Save Payment</button>
+    </div>`;
+}
+
+function savePayment(id) {
+  const clientId = document.getElementById('p-client')?.value;
+  const amount = document.getElementById('p-amount')?.value;
+  if(!clientId||!amount){alert('Client and amount are required');return;}
+  const data = {
+    clientId, amount: parseFloat(amount),
+    type: document.getElementById('p-type')?.value||'Payment',
+    date: document.getElementById('p-date')?.value,
+    method: document.getElementById('p-method')?.value,
+    notes: document.getElementById('p-notes')?.value.trim()
+  };
+  const pays = DB.payments;
+  if(id){const i=pays.findIndex(p=>p.id===id);if(i>=0)pays[i]={...pays[i],...data};}
+  else pays.push({id:uid(),...data,createdAt:new Date().toISOString()});
+  DB.payments=pays; closeModal(); toast('Payment saved!');
+  if(clientDetail) renderClientDetail(); else render();
+}
+function editPayment(id){const p=DB.payments.find(x=>x.id===id);if(!p)return;openModal('Edit Payment',paymentForm(p));}
+function deletePayment(id){if(!confirm('Delete this payment?'))return;DB.payments=DB.payments.filter(p=>p.id!==id);toast('Deleted');render();}
+function delPayReturn(id){if(!confirm('Delete this payment?'))return;DB.payments=DB.payments.filter(p=>p.id!==id);toast('Deleted');renderClientDetail();}
+
+// BACKUP
+function renderBackup(){
+  document.getElementById('topbar-actions').innerHTML='';
+  document.getElementById('content').innerHTML=`
+    <div class="backup-grid">
+      <div class="backup-card" onclick="exportJSON()">
+        <div class="backup-icon">📦</div><h3>Export to JSON</h3>
+        <p>Save all your data as a JSON backup file. Restore it anytime.</p>
+        <button class="btn btn-primary" style="width:100%">Export JSON</button>
+      </div>
+      <div class="backup-card" onclick="importJSON()">
+        <div class="backup-icon">📥</div><h3>Import from JSON</h3>
+        <p>Restore data from a previously exported JSON backup file.</p>
+        <button class="btn btn-outline" style="width:100%">Import JSON</button>
+        <input type="file" id="import-json-file" accept=".json" style="display:none" onchange="handleImportJSON(event)"/>
+      </div>
+      <div class="backup-card" onclick="exportCSV()">
+        <div class="backup-icon">📊</div><h3>Export to CSV</h3>
+        <p>Export clients and payments as a CSV spreadsheet for Excel or Sheets.</p>
+        <button class="btn btn-outline" style="width:100%">Export CSV</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px;">
+      <div class="card-title">Backup Tips</div>
+      <ul style="margin-top:10px;padding-left:18px;color:var(--text-muted);font-size:13px;line-height:2.2;">
+        <li>Export a JSON backup <strong style="color:var(--text)">at least once a week</strong></li>
+        <li>Always export before clearing your browser data</li>
+        <li>Store your backup file in a safe location (e.g. Google Drive)</li>
+        <li>Use the same browser every time to avoid data loss</li>
+      </ul>
+    </div>`;
+}
+
+function exportJSON(){
+  const data={clients:DB.clients,appointments:DB.appointments,payments:DB.payments,exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`ivitna-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
+  URL.revokeObjectURL(url);toast('JSON backup exported!');
+}
+function importJSON(){document.getElementById('import-json-file').click();}
+function handleImportJSON(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data.clients||!data.appointments||!data.payments)throw new Error('Invalid');
+      if(!confirm(`Replace all current data with backup from ${data.exportedAt?new Date(data.exportedAt).toLocaleString():'unknown'}?`))return;
+      DB.clients=data.clients;DB.appointments=data.appointments;DB.payments=data.payments;
+      toast('Data restored!');render();
+    }catch{alert('Invalid backup file.');}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+function exportCSV(){
+  let csv='CLIENTS\nName,Company,Email,Phone,Instagram,Campaign,Budget,Vid Required,Vid Completed,Vid Pending,Notes\n';
+  DB.clients.forEach(c=>{
+    const vp=Math.max(0,(c.vidRequired||0)-(c.vidCompleted||0));
+    csv+=[c.name,c.company,c.email,c.phone,c.igUser,c.campaign,c.budget,c.vidRequired||0,c.vidCompleted||0,vp,c.notes].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',')+'\n';
+  });
+  csv+='\nPAYMENTS\nClient,Date,Amount,Method,Status,Vid Required,Vid Completed,Vid Pending,Notes\n';
+  DB.payments.forEach(p=>{
+    const c=getClient(p.clientId);const vp=Math.max(0,(p.vidRequired||0)-(p.vidCompleted||0));
+    csv+=[c?.name||'Unknown',p.date,p.amount,p.method,p.status,p.vidRequired||0,p.vidCompleted||0,vp,p.notes].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',')+'\n';
+  });
+  csv+='\nAPPOINTMENTS\nTitle,Client,Date,Notes\n';
+  DB.appointments.forEach(a=>{
+    const c=getClient(a.clientId);
+    csv+=[a.title,c?.name||'—',a.date,a.notes].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=url;link.download=`ivitna-export-${new Date().toISOString().slice(0,10)}.csv`;link.click();
+  URL.revokeObjectURL(url);toast('CSV exported!');
+}
+
+render();
+</script>
+</body>
+</html>
