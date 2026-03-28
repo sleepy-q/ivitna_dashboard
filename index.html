@@ -227,6 +227,21 @@
   .toast.show { transform: translateY(0); opacity: 1; }
 
   /* MOBILE */
+  /* VIDEO PIPELINE */
+  .pipeline-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+  .pipeline-col { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; min-height: 300px; }
+  .pipeline-col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .pipeline-col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+  .pipeline-col-count { font-size: 11px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 2px 8px; }
+  .video-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 11px 12px; margin-bottom: 8px; box-shadow: var(--shadow); }
+  .video-card-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; word-break: break-word; }
+  .video-card-date { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+  .video-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stage-badge-planned { color: #6b7280; }
+  .stage-badge-shot { color: var(--violet-label); }
+  .stage-badge-edited { color: var(--warning); }
+  .stage-badge-uploaded { color: var(--success); }
+  @media (max-width: 900px) { .pipeline-grid { grid-template-columns: repeat(2,1fr); } }
   @media (max-width: 768px) {
     .sidebar { transform: translateX(-220px); width: 220px; }
     .sidebar.open { transform: translateX(0); }
@@ -317,6 +332,8 @@ const DB = {
   set appointments(v){localStorage.setItem('ivitna_appointments',JSON.stringify(v));},
   get payments(){return JSON.parse(localStorage.getItem('ivitna_payments')||'[]');},
   set payments(v){localStorage.setItem('ivitna_payments',JSON.stringify(v));},
+  get videos(){return JSON.parse(localStorage.getItem('ivitna_videos')||'[]');},
+  set videos(v){localStorage.setItem('ivitna_videos',JSON.stringify(v));},
 };
 
 let currentPage='dashboard', calMonth=new Date().getMonth(), calYear=new Date().getFullYear(), clientDetail=null, clientDetailTab='info';
@@ -584,6 +601,7 @@ function deleteClient(id){
   DB.clients=DB.clients.filter(c=>c.id!==id);
   DB.appointments=DB.appointments.filter(a=>a.clientId!==id);
   DB.payments=DB.payments.filter(p=>p.clientId!==id);
+  DB.videos=DB.videos.filter(v=>v.clientId!==id);
   toast('Client deleted');render();
 }
 
@@ -618,11 +636,13 @@ function renderClientDetail(){
       <div class="tab ${clientDetailTab==='info'?'active':''}" onclick="setClientTab('info')">Overview</div>
       <div class="tab ${clientDetailTab==='appts'?'active':''}" onclick="setClientTab('appts')">Appointments (${appts.length})</div>
       <div class="tab ${clientDetailTab==='pays'?'active':''}" onclick="setClientTab('pays')">Payments (${pays.length})</div>
+      <div class="tab ${clientDetailTab==='videos'?'active':''}" onclick="setClientTab('videos')">Video Pipeline</div>
     </div>
     <div id="client-tab-content">
       ${clientDetailTab==='info'?renderClientInfo(c,appts,pays,totalPaid,outstanding):''}
       ${clientDetailTab==='appts'?renderClientAppts(appts):''}
       ${clientDetailTab==='pays'?renderClientPays(pays,totalPaid,outstanding):''}
+      ${clientDetailTab==='videos'?renderVideoPipeline(clientDetail):''}
     </div>`;
 }
 function setClientTab(tab){clientDetailTab=tab;renderClientDetail();}
@@ -704,6 +724,99 @@ function renderClientPays(pays, totalPaid, outstanding) {
       </table></div></div>`}`;
 }
 
+// VIDEO PIPELINE
+function renderVideoPipeline(clientId) {
+  const videos = DB.videos.filter(v => v.clientId === clientId);
+  const stages = ['Planned','Shot','Edited','Uploaded'];
+  const stageColors = { Planned:'#6b7280', Shot:'var(--violet-label)', Edited:'var(--warning)', Uploaded:'var(--success)' };
+  const cols = stages.map(stage => {
+    const stageVids = videos.filter(v => v.stage === stage);
+    const cards = stageVids.length === 0
+      ? `<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:14px 0;">No videos</div>`
+      : stageVids.map(v => `
+        <div class="video-card">
+          <div class="video-card-title">${v.title}</div>
+          ${v.date ? `<div class="video-card-date">${fmt(v.date)}</div>` : ''}
+          ${v.notes ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">${v.notes}</div>` : ''}
+          <div class="video-card-actions">
+            ${stages.indexOf(stage) > 0 ? `<button class="btn btn-outline btn-sm" onclick="moveVideo('${v.id}','${stages[stages.indexOf(stage)-1]}')">← Back</button>` : ''}
+            ${stages.indexOf(stage) < stages.length-1 ? `<button class="btn btn-primary btn-sm" onclick="moveVideo('${v.id}','${stages[stages.indexOf(stage)+1]}')">Next →</button>` : ''}
+            <button class="btn btn-ghost btn-sm" onclick="editVideo('${v.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteVideo('${v.id}')">Del</button>
+          </div>
+        </div>`).join('');
+    return `
+      <div class="pipeline-col">
+        <div class="pipeline-col-header">
+          <div class="pipeline-col-title" style="color:${stageColors[stage]}">${stage}</div>
+          <div class="pipeline-col-count">${stageVids.length}</div>
+        </div>
+        ${cards}
+      </div>`;
+  }).join('');
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+      <button class="btn btn-primary btn-sm" onclick="openAddVideo('${clientId}')">+ Add Video</button>
+    </div>
+    <div class="pipeline-grid">${cols}</div>`;
+}
+
+function openAddVideo(clientId) {
+  openModal('Add Video', videoForm(null, clientId));
+}
+
+function videoForm(v, clientId) {
+  return `
+    <div class="form-group"><label>Title *</label><input id="v-title" value="${v?.title||''}" placeholder="Reel #1 — Product Launch"/></div>
+    <div class="form-row">
+      <div class="form-group"><label>Stage</label>
+        <select id="v-stage">${['Planned','Shot','Edited','Uploaded'].map(s=>`<option value="${s}" ${s===(v?.stage||'Planned')?'selected':''}>${s}</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label>Due Date</label><input id="v-date" type="date" value="${v?.date?.slice(0,10)||''}"/></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="v-notes">${v?.notes||''}</textarea></div>
+    <div class="form-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVideo('${v?.id||''}','${v?.clientId||clientId||''}')">Save Video</button>
+    </div>`;
+}
+
+function saveVideo(id, clientId) {
+  const title = document.getElementById('v-title')?.value.trim();
+  if (!title) { alert('Please enter a title'); return; }
+  const data = {
+    title,
+    clientId,
+    stage: document.getElementById('v-stage')?.value || 'Planned',
+    date: document.getElementById('v-date')?.value,
+    notes: document.getElementById('v-notes')?.value.trim()
+  };
+  const videos = DB.videos;
+  if (id) { const i = videos.findIndex(v => v.id === id); if (i >= 0) videos[i] = {...videos[i], ...data}; }
+  else videos.push({id: uid(), ...data, createdAt: new Date().toISOString()});
+  DB.videos = videos;
+  closeModal(); toast('Video saved!'); renderClientDetail();
+}
+
+function editVideo(id) {
+  const v = DB.videos.find(x => x.id === id); if (!v) return;
+  openModal('Edit Video', videoForm(v, v.clientId));
+}
+
+function deleteVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  DB.videos = DB.videos.filter(v => v.id !== id);
+  toast('Deleted'); renderClientDetail();
+}
+
+function moveVideo(id, newStage) {
+  const videos = DB.videos;
+  const i = videos.findIndex(v => v.id === id);
+  if (i >= 0) videos[i].stage = newStage;
+  DB.videos = videos;
+  toast('Moved to ' + newStage); renderClientDetail();
+}
+
 // PAYMENTS
 function renderPayments() {
   document.getElementById('topbar-actions').innerHTML=`<button class="btn btn-primary" onclick="openAddPayment()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>New Payment</span></button>`;
@@ -757,7 +870,22 @@ function renderPayments() {
 
 function renderPayClientCards(rows) {
   if (rows.length === 0) return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>No clients yet.</p></div>`;
-  return rows.map(({c, contractAmount, advance, totalPaid, pending}) => `
+  return rows.map(({c, contractAmount, advance, totalPaid, pending}) => {
+    const cpays = [...DB.payments.filter(p=>p.clientId===c.id)].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const payRows = cpays.length === 0
+      ? `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:14px;">No payments yet</td></tr>`
+      : cpays.map(p=>`<tr>
+          <td>${fmt(p.date)}</td>
+          <td style="font-weight:600;">${currency(p.amount)}</td>
+          <td><span style="font-size:11px;background:var(--violet-dim);color:var(--violet-label);padding:2px 7px;border-radius:10px;">${p.type||'Payment'}</span></td>
+          <td>${p.method||'—'}</td>
+          <td style="color:var(--text-muted);font-size:12px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.notes||'—'}</td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-ghost btn-sm" onclick="editPayment('${p.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePaymentGlobal('${p.id}')">Del</button>
+          </td>
+        </tr>`).join('');
+    return `
     <div class="card" style="margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -772,7 +900,7 @@ function renderPayClientCards(rows) {
           <button class="btn btn-primary btn-sm" onclick="openModal('Add Payment',paymentForm(null,'${c.id}'))">+ Payment</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
         <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;">
           <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:5px;">Contract Value</div>
           <div style="font-size:16px;font-weight:700;font-family:var(--font-display);">${contractAmount>0?currency(contractAmount):'Not set'}</div>
@@ -790,7 +918,40 @@ function renderPayClientCards(rows) {
           <div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:${pending>0?'var(--warning)':'var(--success)'};">${contractAmount>0?currency(pending):'—'}</div>
         </div>
       </div>
-    </div>`).join('');
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;" onclick="togglePayHistory('hist-${c.id}',this)">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;">
+            Payment History <span style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1px 7px;margin-left:6px;">${cpays.length}</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-muted);transition:transform 0.2s;" class="hist-chevron">▼</span>
+        </div>
+        <div id="hist-${c.id}" style="display:none;margin-top:10px;">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Date</th><th>Amount</th><th>Type</th><th>Method</th><th>Notes</th><th>Actions</th></tr></thead>
+              <tbody>${payRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePayHistory(id, header) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const open = el.style.display === 'block';
+  el.style.display = open ? 'none' : 'block';
+  const chev = header.querySelector('.hist-chevron');
+  if (chev) chev.textContent = open ? '▼' : '▲';
+}
+
+function deletePaymentGlobal(id) {
+  if (!confirm('Delete this payment?')) return;
+  DB.payments = DB.payments.filter(p => p.id !== id);
+  toast('Payment deleted');
+  renderPayments();
 }
 
 function filterPaymentClients() {
@@ -907,7 +1068,7 @@ function renderBackup(){
 }
 
 function exportJSON(){
-  const data={clients:DB.clients,appointments:DB.appointments,payments:DB.payments,exportedAt:new Date().toISOString()};
+  const data={clients:DB.clients,appointments:DB.appointments,payments:DB.payments,videos:DB.videos,exportedAt:new Date().toISOString()};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`ivitna-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
   URL.revokeObjectURL(url);toast('JSON backup exported!');
@@ -921,7 +1082,7 @@ function handleImportJSON(e){
       const data=JSON.parse(ev.target.result);
       if(!data.clients||!data.appointments||!data.payments)throw new Error('Invalid');
       if(!confirm(`Replace all current data with backup from ${data.exportedAt?new Date(data.exportedAt).toLocaleString():'unknown'}?`))return;
-      DB.clients=data.clients;DB.appointments=data.appointments;DB.payments=data.payments;
+      DB.clients=data.clients;DB.appointments=data.appointments;DB.payments=data.payments;if(data.videos)DB.videos=data.videos;
       toast('Data restored!');render();
     }catch{alert('Invalid backup file.');}
   };
