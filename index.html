@@ -376,10 +376,8 @@ function renderDashboard(){
   const today=new Date();today.setHours(0,0,0,0);
   const todayA=appts.filter(a=>{const d=new Date(a.date);d.setHours(0,0,0,0);return d.getTime()===today.getTime();});
   const upcoming=appts.filter(a=>new Date(a.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
-  const isPaid = (p) => p.status === 'Paid';
-  const toAmount = (sum, p) => sum + Number(p.amount);
-  const pending = payments.filter(isPaid).reduce(toAmount, 0);
-  const recieved = payments.filter((p) => !isPaid(p)).reduce(toAmount, 0);
+  const totalRev=payments.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const outstanding=payments.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
   const recentPay=[...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   document.getElementById('topbar-actions').innerHTML='';
   document.getElementById('content').innerHTML=`
