@@ -27,8 +27,8 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0a0a0a;
-      --surface: #1a1a1a;
-      --surface2: #222226;
+      --surface: #373434;
+      --surface2: #323232;
       --border: #2a2a2e;
       --text: #f0f0f2;
       --text-muted: #88889a;
@@ -376,8 +376,8 @@ function renderDashboard(){
   const today=new Date();today.setHours(0,0,0,0);
   const todayA=appts.filter(a=>{const d=new Date(a.date);d.setHours(0,0,0,0);return d.getTime()===today.getTime();});
   const upcoming=appts.filter(a=>new Date(a.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
-  const totalRev=payments.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0);
-  const outstanding=payments.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const totalRev=payments.filter(p=>p.status=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const outstanding=payments.filter(p=>p.status!='Paid').reduce((s,p)=>s+Number(p.amount),0);
   const recentPay=[...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   document.getElementById('topbar-actions').innerHTML='';
   document.getElementById('content').innerHTML=`
