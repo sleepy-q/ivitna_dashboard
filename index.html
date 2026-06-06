@@ -13,28 +13,28 @@
     --border: #e2e2e6;
     --text: #111113;
     --text-muted: #6b6b7b;
-    --violet: #6034ad;
-    --violet-label: #5b0bdc;
-    --violet-dim: #190b3118;
+    --violet: #7c3aed;
+    --violet-label: #6d28d9;
+    --violet-dim: #7c3aed18;
     --danger: #dc2626;
-    --success: #079f3f;
-    --warning: #d57304;
+    --success: #16a34a;
+    --warning: #d97706;
     --font-display: 'Playfair Display', serif;
     --font-body: 'DM Sans', sans-serif;
     --sidebar-w: 220px;
-    --shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+    --shadow: 0 1px 4px rgba(0,0,0,0.07);
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0a0a0a;
-      --surface: #000000;
-      --surface2: #07070e;
-      --border: #000014;
+      --surface: #1a1a1a;
+      --surface2: #222226;
+      --border: #2a2a2e;
       --text: #f0f0f2;
       --text-muted: #88889a;
-      --violet: #6427ce;
-      --violet-label: #784aff;
-      --violet-dim: #2b165222;
+      --violet: #7c3aed;
+      --violet-label: #a78bfa;
+      --violet-dim: #3b1f6e22;
       --danger: #ef4444;
       --success: #22c55e;
       --warning: #f59e0b;
@@ -376,8 +376,8 @@ function renderDashboard(){
   const today=new Date();today.setHours(0,0,0,0);
   const todayA=appts.filter(a=>{const d=new Date(a.date);d.setHours(0,0,0,0);return d.getTime()===today.getTime();});
   const upcoming=appts.filter(a=>new Date(a.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
-  const totalRev=payments.filter(p=>p.status=='Paid').reduce((s,p)=>s+Number(p.amount),0);
-  const outstanding=payments.filter(p=>p.status!='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const totalRev=payments.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const outstanding=payments.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
   const recentPay=[...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   document.getElementById('topbar-actions').innerHTML='';
   document.getElementById('content').innerHTML=`
