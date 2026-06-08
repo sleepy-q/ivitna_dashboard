@@ -376,8 +376,12 @@ function renderDashboard(){
   const today=new Date();today.setHours(0,0,0,0);
   const todayA=appts.filter(a=>{const d=new Date(a.date);d.setHours(0,0,0,0);return d.getTime()===today.getTime();});
   const upcoming=appts.filter(a=>new Date(a.date)>new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5);
-  const totalRev=payments.filter(p=>p.status==='Paid').reduce((s,p)=>s+Number(p.amount),0);
-  const outstanding=payments.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+  const totalRev=payments.reduce((s,p)=>s+Number(p.amount),0);
+const outstanding=clients.reduce((sum, c) => {
+  const clientPaid = payments.filter(p=>p.clientId===c.id).reduce((s,p)=>s+Number(p.amount),0);
+  const contractVal = Number(c.contractAmount||0);
+  return sum + Math.max(0, contractVal - clientPaid);
+}, 0);
   const recentPay=[...payments].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   document.getElementById('topbar-actions').innerHTML='';
   document.getElementById('content').innerHTML=`
@@ -511,7 +515,7 @@ function renderClientList(clients){
   if(clients.length===0)return`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>No clients yet. Add your first client!</p></div>`;
   return clients.map(c=>{
     const pays=DB.payments.filter(p=>p.clientId===c.id);
-    const outstanding=pays.filter(p=>p.status!=='Paid').reduce((s,p)=>s+Number(p.amount),0);
+   const outstanding=Math.max(0, (c.contractAmount||0) - pays.reduce((s,p)=>s+Number(p.amount),0));
     const appts=DB.appointments.filter(a=>a.clientId===c.id).length;
     const pending=Math.max(0,(c.vidRequired||0)-(c.vidCompleted||0));
     return`<div class="client-card" onclick="openClientDetail('${c.id}')">
